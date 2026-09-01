@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU 进程监控</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--dim:#8b949e;--accent:#58a6ff;--red:#f85149}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:18px;margin:0}
+.badge{padding:2px 10px;border-radius:12px;font-size:12px;background:#21262d}
+.badge.run{background:#1a4d2e;color:#7ee787}
+.badge.done{background:#3d2a66;color:#d2a8ff}
+.badge.err{background:#6e1f1f;color:#ffb3ad}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.card h2{font-size:13px;margin:0 0 10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:var(--dim);font-weight:600;font-size:12px}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)}
+.hot{color:var(--red)}
+.path{white-space:normal;font-size:12px;max-width:340px}
+.bar{height:6px;background:#21262d;border-radius:3px;overflow:hidden;min-width:100px}
+.bar i{display:block;height:100%;background:var(--accent)}
+canvas{width:100%;height:320px;display:block}
+button,select,input{background:#21262d;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:13px}
+button{cursor:pointer}
+.btns button{margin-right:4px}
+.btns button.active{background:#1f6feb;border-color:#1f6feb}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+a{color:var(--accent);text-decoration:none}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.big{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📊 GPU 进程监控</h1>
+    <span id="status" class="badge">...</span>
+    <span id="clock" class="dim"></span>
+    <div class="spacer"></div>
+    <label class="dim">显卡 <select id="adapter"></select></label>
+    <label class="dim">阈值 <input type="number" id="threshold" value="10" min="1" max="100" style="width:58px">%</label>
+    <button id="stopBtn">停止监控</button>
+  </header>
+
+  <div class="card">
+    <h2>当前状态</h2>
+    <div class="row" style="margin-bottom:10px">
+      <div><div class="dim" style="font-size:12px">GPU 总占用</div><div class="big" id="curTotal">-</div></div>
+    </div>
+    <table>
+      <thead><tr><th>进程</th><th>PID</th><th class="num">GPU</th><th class="num">显存</th><th style="width:22%">占用</th><th>路径</th></tr></thead>
+      <tbody id="curBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>占用趋势 <span id="chartAdapter" class="dim"></span></h2>
+    <div class="row" style="margin-bottom:8px">
+      <div class="btns" id="rangeBtns">
+        <button data-r="5m">5 分钟</button>
+        <button data-r="30m" class="active">30 分钟</button>
+        <button data-r="2h">2 小时</button>
+        <button data-r="6h">6 小时</button>
+        <button data-r="all">全部</button>
+      </div>
+      <span class="dim" style="font-size:12px">红色虚线 = 阈值 · 鼠标悬停查看数值</span>
+    </div>
+    <canvas id="chart"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="card">
+    <h2 id="sumTitle">进程统计</h2>
+    <table>
+      <thead><tr>
+        <th>进程</th><th>路径</th>
+        <th class="num">≥阈值 时长</th><th class="num">活跃时长</th>
+        <th class="num">峰值</th><th class="num">均值(活跃时)</th>
+        <th>首次出现</th><th>最后出现</th>
+      </tr></thead>
+      <tbody id="sumBody"></tbody>
+    </table>
+  </div>
+
+  <div id="foot" class="dim" style="font-size:12px"></div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
